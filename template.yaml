@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  user-management-api
+
+  SAM Template for managing user data with DynamoDB
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 10
+    Runtime: python3.8
+    MemorySize: 128
+    # You can add LoggingConfig parameters such as the Logformat, Log Group, and SystemLogLevel or ApplicationLogLevel. Learn more here https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-loggingconfig.
+    LoggingConfig:
+      LogFormat: JSON
+    Environment:
+      Variables:
+          TABLE_NAME:
+            Ref: TABLE_NAME
+          DYNAMODB_ENDPOINT:
+            Ref: DYNAMODB_ENDPOINT
+
+Parameters:
+  TABLE_NAME:
+    Type: String
+    Description: Name of the table
+    Default: Users
+  DYNAMODB_ENDPOINT:
+    Type: String
+    Description: Endpoint URL
+    Default: http://host.docker.internal:8000
+Resources:
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Users
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  CreateUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: api.create_user.lambda_handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        CreateUserApi:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: POST
+
+  GetUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: api.get_user.lambda_handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        GetUserApi:
+          Type: Api
+          Properties:
+            Path: /users/{user_id}
+            Method: GET
+
+  UpdateUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: api.update_user.lambda_handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        UpdateUserApi:
+          Type: Api
+          Properties:
+            Path: /users/{user_id}
+            Method: PUT
+
+  DeleteUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: api.delete_user.lambda_handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        DeleteUserApi:
+          Type: Api
+          Properties:
+            Path: /users/{user_id}
+            Method: DELETE
+  ApplicationResourceGroup:
+    Type: AWS::ResourceGroups::Group
+    Properties:
+      Name:
+        Fn::Sub: ApplicationInsights-SAM-${AWS::StackName}
+      ResourceQuery:
+        Type: CLOUDFORMATION_STACK_1_0
+  ApplicationInsightsMonitoring:
+    Type: AWS::ApplicationInsights::Application
+    Properties:
+      ResourceGroupName:
+        Ref: ApplicationResourceGroup
+      AutoConfigurationEnabled: 'true'
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
