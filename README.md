@@ -65,15 +65,22 @@ Test a single function by invoking it directly with a test event. An event is a 
 
 Run functions locally and invoke them with the `sam local invoke` command.
 
-```bash
-user-management-api$ sam local invoke HelloWorldFunction --event events/event.json
-```
-
 The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
 
 ```bash
 user-management-api$ sam local start-api
 user-management-api$ curl http://localhost:3000/
+```
+
+API Endpoints
+
+```bash
+UpdateUserFunction at http://127.0.0.1:3000/users/{user_id} [PUT]                                                        
+
+DeleteUserFunction at http://127.0.0.1:3000/users/{user_id} [DELETE]                                                     
+
+CreateUserFunction at http://127.0.0.1:3000/users [POST]                                                                 
+GetUserFunction at http://127.0.0.1:3000/users/{user_id} [GET] 
 ```
 
 The SAM CLI reads the application template to determine the API's routes and the functions that they invoke. The `Events` property on each function's definition includes the route and method for each path.
